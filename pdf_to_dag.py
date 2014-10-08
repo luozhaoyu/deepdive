@@ -21,7 +21,7 @@ def get_job_directory(input_path, output_path):
         for f in files:
             suffix = f.split('.')[-1].lower()
             if suffix == "pdf" or suffix.startswith("tif"):
-                filepath = os.path.join(root, f)
+                filepath = os.path.realpath(os.path.join(root, f))
                 count += 1
 
                 new_job_folder_name = "job%03d" % count

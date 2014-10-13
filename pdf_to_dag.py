@@ -24,7 +24,7 @@ def get_job_directory(input_path, output_path):
                 filepath = os.path.realpath(os.path.join(root, f))
                 count += 1
 
-                new_job_folder_name = "job%03d" % count
+                new_job_folder_name = "job%06d" % count
                 new_job_folder_path = os.path.join(output_path, new_job_folder_name)
                 try:
                     os.makedirs(new_job_folder_path)

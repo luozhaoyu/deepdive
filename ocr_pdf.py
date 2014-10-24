@@ -12,8 +12,8 @@ import shutil
 
 def call(cmd, check=True, stdout=None, stderr=None):
     """
-        Args:
-            check: check return code or not
+    Args:
+        check: check return code or not
     """
     if check:
         return subprocess.check_call(cmd, stdout=stdout, stderr=stderr, shell=True)
@@ -71,6 +71,10 @@ def pdf_to_bmp(pdf_file, tmp_folder=None, func=call):
 
 
 def tesseract(png_folder_path, output_folder_path=None, func=call):
+    """
+    Returns:
+        0, always return 0
+    """
     png_folder_path = os.path.abspath(png_folder_path)
     if not output_folder_path:
         output_folder_path = png_folder_path
@@ -85,9 +89,14 @@ def tesseract(png_folder_path, output_folder_path=None, func=call):
             func(cmd)
             cmd = "rm -f %s" % (ppm_filename)
             func(cmd)
+    return 0
 
 
 def cuneiform(bmp_folder_path, output_folder_path=None, func=call):
+    """
+    Returns:
+        0, always return 0
+    """
     bmp_folder_path = os.path.abspath(bmp_folder_path)
     if not output_folder_path:
         output_folder_path = bmp_folder_path
@@ -96,6 +105,7 @@ def cuneiform(bmp_folder_path, output_folder_path=None, func=call):
             cmd = "./cde-package/cde-exec '/scratch.1/pdf2xml/cuneiform/bin/cuneiform' -f hocr -o %s.html %s"\
                 % (os.path.join(output_folder_path, i), os.path.join(bmp_folder_path, i))
             func(cmd)
+    return 0
 
 
 class OcrPdf(object):

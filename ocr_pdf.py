@@ -21,6 +21,15 @@ def call(cmd, check=True, stdout=None, stderr=None):
         return subprocess.call(cmd, stdout=stdout, stderr=stderr, shell=True)
 
 
+def unzip(zip_file, func=call):
+    cmd = "unzip -o %s" % zip_file
+    try:
+        return func(cmd)
+    except subprocess.CalledProcessError as e:
+        if e.returncode != 2:
+            raise e
+
+
 def k2pdfopt(pdf_file, output_file, func=call):
     """convert multi-column PDF into single column
 
@@ -61,18 +70,41 @@ def pdf_to_bmp(pdf_file, tmp_folder=None, func=call):
     return func(cmd)
 
 
-def tesseract(png_folder_path):
-    for i in os.listdir(os.path.abspath(png_folder_path)):
+def tesseract(png_folder_path, output_folder_path=None, func=call):
+    png_folder_path = os.path.abspath(png_folder_path)
+    if not output_folder_path:
+        output_folder_path = png_folder_path
+    for i in os.listdir(png_folder_path):
         if i.endswith('.png'):
-            print i
+            png_path = os.path.join(png_folder_path, i)
+            ppm_filename = "%s.ppm" % png_path
+            hocr_filename = os.path.join(output_folder_path, "%s.hocr" % i)
+            cmd = "./codes/convert/cde-exec 'convert' -density 750 %s %s" % (png_path, ppm_filename)
+            func(cmd)
+            cmd = "./codes/tesseract/cde-exec 'tesseract' %s %s hocr" % (ppm_filename, hocr_filename)
+            func(cmd)
+            cmd = "rm -f %s" % (ppm_filename)
+            func(cmd)
+
+
+def cuneiform(bmp_folder_path, output_folder_path=None, func=call):
+    bmp_folder_path = os.path.abspath(bmp_folder_path)
+    if not output_folder_path:
+        output_folder_path = bmp_folder_path
+    for i in os.listdir(bmp_folder_path):
+        if i.endswith('.bmp'):
+            cmd = "./cde-package/cde-exec '/scratch.1/pdf2xml/cuneiform/bin/cuneiform' -f hocr -o %s.html %s"\
+                % (os.path.join(output_folder_path, i), os.path.join(bmp_folder_path, i))
+            func(cmd)
 
 
 class OcrPdf(object):
-    def __init__(self, pdf_path, stdout_filepath, stderr_filepath):
+    def __init__(self, pdf_path, stdout_filepath, stderr_filepath, output_folder_path=None):
         try:
             self.stdout = open(stdout_filepath, 'a')
             self.stderr = open(stderr_filepath, 'a')
             self.pdf_path = pdf_path
+            self.output_folder_path = output_folder_path
         except IOError as e:
             print "ERROR\tInvalid filepath %s, %s" % (stdout_filepath, stderr_filepath)
             if self.stdout:
@@ -88,6 +120,13 @@ class OcrPdf(object):
             print "ERROR\tCreate tmp folder"
             raise e
 
+        if self.output_folder_path and not os.path.isdir(self.output_folder_path):
+            try:
+                os.mkdir(self.output_folder_path)
+            except OSError as e:
+                print "ERROR\tCreate output folder"
+                raise e
+
     def __del__(self):
         shutil.rmtree('tmp', True)
 
@@ -96,14 +135,17 @@ class OcrPdf(object):
 
     def do(self):
         output_file = "k2_pdf_%s" % self.pdf_path
+        unzip("ocr2.zip", func=self.call)
+        unzip("cuneiform.zip", func=self.call)
         print k2pdfopt(self.pdf_path, output_file, func=self.call)
         print pdf_to_png(output_file, tmp_folder='tmp', func=self.call)
         print pdf_to_bmp(output_file, tmp_folder='tmp', func=self.call)
-        print tesseract('tmp')
+        print tesseract('tmp', self.output_folder_path, self.call)
+        print cuneiform('tmp', self.output_folder_path, self.call)
 
 
 def main(argv):
-    o = OcrPdf(argv[1], 'out.txt', 'out.txt')
+    o = OcrPdf(argv[1], 'out.txt', 'out.txt', 'out')
     o.do()
 
 

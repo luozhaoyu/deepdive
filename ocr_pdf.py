@@ -108,6 +108,13 @@ def cuneiform(bmp_folder_path, output_folder_path=None, func=call):
     return 0
 
 
+def tiff_to_html(tiff_path, output_folder_path=None, func=call):
+    output_folder_path = os.path.abspath(output_folder_path) if output_folder_path else os.path.abspath('.')
+    hocr_path = os.path.join(output_folder_path, os.path.basename(tiff_path))
+    cmd = "./codes/tesseract/cde-exec 'tesseract' %s %s.hocr hocr" % (tiff_path, hocr_path)
+    return func(cmd)
+
+
 class OcrPdf(object):
     def __init__(self, pdf_path, stdout_filepath, stderr_filepath, output_folder_path=None):
         try:
@@ -153,10 +160,22 @@ class OcrPdf(object):
         print tesseract('tmp', self.output_folder_path, self.call)
         print cuneiform('tmp', self.output_folder_path, self.call)
 
+    def tiffs_to_htmls(self, tiff_folder_path):
+        """
+        Returns:
+            True or the file failed to be converted
+        """
+        for i in os.listdir(tiff_folder_path):
+            if i.endswith('.tif') or i.endswith('.tiff'):
+                tiff_path = os.path.join(tiff_folder_path, i)
+                if tiff_to_html(tiff_path, self.output_folder_path, self.call):
+                    return tiff_path
+        return True
+
 
 def main(argv):
     o = OcrPdf(argv[1], 'out.txt', 'out.txt', 'out')
-    o.do()
+    o.tiffs_to_htmls(argv[1])
 
 
 if __name__ == '__main__':

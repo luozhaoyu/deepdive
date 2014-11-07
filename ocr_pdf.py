@@ -22,7 +22,7 @@ def call(cmd, check=True, stdout=None, stderr=None):
 
 
 def unzip(zip_file, func=call):
-    cmd = "unzip -o %s" % zip_file
+    cmd = "unzip -o '%s'" % zip_file
     try:
         return func(cmd)
     except subprocess.CalledProcessError as e:
@@ -48,25 +48,25 @@ def k2pdfopt(pdf_file, output_file, func=call):
     except OSError as e:
         if e.errno != 2:
             raise e
-    cmd = "./k2pdfopt -ui- -x -w 2160 -h 3840 -odpi 300 %s -o %s" % (pdf_file, output_file)
+    cmd = "./k2pdfopt -ui- -x -w 2160 -h 3840 -odpi 300 '%s' -o '%s'" % (pdf_file, output_file)
     return func(cmd)
 
 
 def pdf_to_png(pdf_file, tmp_folder=None, func=call):
     if tmp_folder:
-        cmd = "./codes/convert/cde-exec 'gs' -dBATCH -dNOPAUSE -sDEVICE=png16m -dGraphicsAlphaBits=4 -dTextAlphaBits=4 -r300 -sOutputFile=%s/page-%%d.png %s"\
+        cmd = "./codes/convert/cde-exec 'gs' -dBATCH -dNOPAUSE -sDEVICE=png16m -dGraphicsAlphaBits=4 -dTextAlphaBits=4 -r300 -sOutputFile='%s/page-%%d.png' '%s'"\
             % (tmp_folder, pdf_file)
     else:
-        cmd = "./codes/convert/cde-exec 'gs' -dBATCH -dNOPAUSE -sDEVICE=png16m -dGraphicsAlphaBits=4 -dTextAlphaBits=4 -r300 -sOutputFile=page-%%d.png %s" % pdf_file
+        cmd = "./codes/convert/cde-exec 'gs' -dBATCH -dNOPAUSE -sDEVICE=png16m -dGraphicsAlphaBits=4 -dTextAlphaBits=4 -r300 -sOutputFile=page-%%d.png '%s'" % pdf_file
     return func(cmd)
 
 
 def pdf_to_bmp(pdf_file, tmp_folder=None, func=call):
     if tmp_folder:
-        cmd = "./codes/convert/cde-exec 'gs' -SDEVICE=bmpmono -r300x300 -sOutputFile=%s/cuneiform-page-%%04d.bmp -dNOPAUSE -dBATCH -- %s"\
+        cmd = "./codes/convert/cde-exec 'gs' -SDEVICE=bmpmono -r300x300 -sOutputFile='%s/cuneiform-page-%%04d.bmp' -dNOPAUSE -dBATCH -- '%s'"\
                 % (tmp_folder, pdf_file)
     else:
-        cmd = "./codes/convert/cde-exec 'gs' -SDEVICE=bmpmono -r300x300 -sOutputFile=cuneiform-page-%%04d.bmp -dNOPAUSE -dBATCH -- %s" % pdf_file
+        cmd = "./codes/convert/cde-exec 'gs' -SDEVICE=bmpmono -r300x300 -sOutputFile='cuneiform-page-%%04d.bmp' -dNOPAUSE -dBATCH -- '%s'" % pdf_file
     return func(cmd)
 
 
@@ -83,11 +83,11 @@ def tesseract(png_folder_path, output_folder_path=None, func=call):
             png_path = os.path.join(png_folder_path, i)
             ppm_filename = "%s.ppm" % png_path
             hocr_filename = os.path.join(output_folder_path, "%s.hocr" % i)
-            cmd = "./codes/convert/cde-exec 'convert' -density 750 %s %s" % (png_path, ppm_filename)
+            cmd = "./codes/convert/cde-exec 'convert' -density 750 '%s' '%s'" % (png_path, ppm_filename)
             func(cmd)
-            cmd = "./codes/tesseract/cde-exec 'tesseract' %s %s hocr" % (ppm_filename, hocr_filename)
+            cmd = "./codes/tesseract/cde-exec 'tesseract' '%s' '%s' hocr" % (ppm_filename, hocr_filename)
             func(cmd)
-            cmd = "rm -f %s" % (ppm_filename)
+            cmd = "rm -f '%s'" % (ppm_filename)
             func(cmd)
     return 0
 
@@ -102,7 +102,7 @@ def cuneiform(bmp_folder_path, output_folder_path=None, func=call):
         output_folder_path = bmp_folder_path
     for i in os.listdir(bmp_folder_path):
         if i.endswith('.bmp'):
-            cmd = "./cde-package/cde-exec '/scratch.1/pdf2xml/cuneiform/bin/cuneiform' -f hocr -o %s.html %s"\
+            cmd = "./cde-package/cde-exec '/scratch.1/pdf2xml/cuneiform/bin/cuneiform' -f hocr -o '%s.html' '%s'"\
                 % (os.path.join(output_folder_path, i), os.path.join(bmp_folder_path, i))
             func(cmd)
     return 0
@@ -111,7 +111,7 @@ def cuneiform(bmp_folder_path, output_folder_path=None, func=call):
 def tiff_to_html(tiff_path, output_folder_path=None, func=call):
     output_folder_path = os.path.abspath(output_folder_path) if output_folder_path else os.path.abspath('.')
     hocr_path = os.path.join(output_folder_path, os.path.basename(tiff_path))
-    cmd = "./codes/tesseract/cde-exec 'tesseract' %s %s.hocr hocr" % (tiff_path, hocr_path)
+    cmd = "./codes/tesseract/cde-exec 'tesseract' '%s' '%s.hocr' hocr" % (tiff_path, hocr_path)
     return func(cmd)
 
 
@@ -175,6 +175,7 @@ class OcrPdf(object):
 
 def main(argv):
     o = OcrPdf(argv[1], 'out.txt', 'out.txt', 'out')
+    #o.do()
     o.tiffs_to_htmls(argv[1])
 
 

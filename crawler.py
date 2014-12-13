@@ -39,7 +39,7 @@ def retrieve(url, sbid, output_folder):
     """
     def _urlretrieve(url, filename, sbid, retry=3):
         if os.path.exists(filename):
-            log.warn("%s\tDUPLICATED")
+            log.warn("%s\tDUPLICATED" % url)
             return None
 
         for i in range(retry):
@@ -87,7 +87,7 @@ def get_tasks(csv_filepath):
     return l
 
 
-def crawl(csv_filepath, output_folder='out'):
+def crawl(csv_filepath, output_folder='pdfs'):
     """
     TODO: some task has multiple links (pdfs), how to handle it?
     """
@@ -108,7 +108,7 @@ def crawl(csv_filepath, output_folder='out'):
             log.error("%s\t%s\t%s" % (sbid, url, e))
 
 def main(argv):
-    print crawl(argv[1], 'out')
+    print crawl(argv[1], '/scratch/pdfs')
 
 
 if __name__ == '__main__':

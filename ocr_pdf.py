@@ -55,19 +55,19 @@ def k2pdfopt(pdf_file, output_file, func=call):
 
 def pdf_to_png(pdf_file, tmp_folder=None, func=call):
     if tmp_folder:
-        cmd = "./codes/convert/cde-exec 'gs' -dBATCH -dNOPAUSE -sDEVICE=png16m -dGraphicsAlphaBits=4 -dTextAlphaBits=4 -r300 -sOutputFile='%s/page-%%d.png' '%s'"\
+        cmd = "./codes/convert/cde-exec 'gs' -dBATCH -dNOPAUSE -sDEVICE=png16m -dGraphicsAlphaBits=4 -dTextAlphaBits=4 -r600 -sOutputFile='%s/page-%%d.png' '%s'"\
             % (tmp_folder, pdf_file)
     else:
-        cmd = "./codes/convert/cde-exec 'gs' -dBATCH -dNOPAUSE -sDEVICE=png16m -dGraphicsAlphaBits=4 -dTextAlphaBits=4 -r300 -sOutputFile=page-%%d.png '%s'" % pdf_file
+        cmd = "./codes/convert/cde-exec 'gs' -dBATCH -dNOPAUSE -sDEVICE=png16m -dGraphicsAlphaBits=4 -dTextAlphaBits=4 -r600 -sOutputFile=page-%%d.png '%s'" % pdf_file
     return func(cmd)
 
 
 def pdf_to_bmp(pdf_file, tmp_folder=None, func=call):
     if tmp_folder:
-        cmd = "./codes/convert/cde-exec 'gs' -SDEVICE=bmpmono -r300x300 -sOutputFile='%s/cuneiform-page-%%04d.bmp' -dNOPAUSE -dBATCH -- '%s'"\
+        cmd = "./codes/convert/cde-exec 'gs' -SDEVICE=bmpmono -r600x600 -sOutputFile='%s/cuneiform-page-%%04d.bmp' -dNOPAUSE -dBATCH -- '%s'"\
                 % (tmp_folder, pdf_file)
     else:
-        cmd = "./codes/convert/cde-exec 'gs' -SDEVICE=bmpmono -r300x300 -sOutputFile='cuneiform-page-%%04d.bmp' -dNOPAUSE -dBATCH -- '%s'" % pdf_file
+        cmd = "./codes/convert/cde-exec 'gs' -SDEVICE=bmpmono -r600x600 -sOutputFile='cuneiform-page-%%04d.bmp' -dNOPAUSE -dBATCH -- '%s'" % pdf_file
     return func(cmd)
 
 
@@ -184,9 +184,6 @@ class OcrPdf(object):
 
 
 def main(args):
-
-    # todo: parse arguments for certain analysis paths
-    # seems like condor will only return stuff in the ./ dir?
     o = OcrPdf(args.file, 'out.txt', 'out.txt', './',args.cuneiform,args.tesseract,args.k2pdf)
     o.do()
 #    o.tiffs_to_htmls(argv[1])

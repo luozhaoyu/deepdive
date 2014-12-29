@@ -84,7 +84,7 @@ def tesseract(png_folder_path, output_folder_path=None, func=call):
             png_path = os.path.join(png_folder_path, i)
             ppm_filename = "%s.ppm" % png_path
             ppm_filename = ppm_filename.replace(".png","")
-            hocr_filename = os.path.join(output_folder_path, "%s.hocr" % i)
+            hocr_filename = os.path.join(output_folder_path, "%s.hocr" % i.replace(".png",""))
             cmd = "./codes/convert/cde-exec 'convert' -density 750 '%s' '%s'" % (png_path, ppm_filename)
             func(cmd)
             cmd = "./codes/tesseract/cde-exec 'tesseract' '%s' '%s' hocr" % (ppm_filename, hocr_filename)

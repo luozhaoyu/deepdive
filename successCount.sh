@@ -2,12 +2,15 @@
 # Looks for success flags in the [journal]_out/[jobid]/RESULT files,
 # writing the journal name and total successes for each
 
-rm successCount.csv
+tag=$1
+
+rm successCount$tag.csv
 total=0
-for f in *_out/;
+for f in *_out$tag/;
 do
-    fspace=${f//_/ }
+    fclean=${f//$tag/}
+    fspace=${fclean//_/ }
     fclean=${fspace// out/}
     fclean=${fclean//\//}
-    cat "$f"*/RESULT | grep 0 | wc -l | xargs echo $fclean",">> successCount.csv
+    cat "$f"*/RESULT | grep 0 | wc -l | xargs echo $fclean",">> successCount$tag.csv
 done

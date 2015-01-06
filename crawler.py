@@ -111,14 +111,27 @@ def crawl(csv_filepath, output_folder='pdfs'):
         t = threading.Thread(target=crawler, args=(output_folder,))
         t.start()
 
+    main_thread = threading.current_thread()
+    for t in threading.enumerate():
+        if t is main_thread:
+            continue
+        t.join()
+
 
 def crawler(output_folder):
     finished = 0
     print "thread %i has started" % (threading.current_thread().ident)
     global TASKS, COMPLETED
     while True:
+        task = None
         try:
             task = TASKS.pop()
+        except IndexError:
+            print "thread %i finished %i tasks, exiting for no task available"\
+                % (threading.current_thread().ident, finished)
+            break
+
+        try:
             if not task:
                 break
             sbid = task['ScienceBaseID']
@@ -136,7 +149,6 @@ def crawler(output_folder):
         except Exception as e:
             print e, task
             log.error("%s\tUNEXPECTED\t%s\t%s" % (sbid, url, e))
-    threading.current_thread().join()
 
 
 def main(argv):

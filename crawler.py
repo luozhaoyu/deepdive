@@ -11,16 +11,21 @@ import urllib2
 import urllib
 import re
 import os
+import urlparse
+import threading
 import logging
 import logging.handlers
 
 import bs4
 
+MINIMUM_PDF_SIZE = 4506
+COMPLETED = set()
+TASKS = None
 
 def create_logger(filename, logger_name=None):
     logger = logging.getLogger(logger_name or filename)
-    fmt='[%(asctime)s] %(levelname)s %(message)s'
-    datefmt="%Y-%m-%d %H:%M:%S"
+    fmt = '[%(asctime)s] %(levelname)s %(message)s'
+    datefmt = "%Y-%m-%d %H:%M:%S"
     formatter = logging.Formatter(fmt=fmt, datefmt=datefmt)
     handler = logging.handlers.RotatingFileHandler(filename, maxBytes=1024 * 1024 * 1024, backupCount=10)
     handler.setFormatter(formatter)
@@ -39,45 +44,44 @@ def retrieve(url, sbid, output_folder):
     """
     def _urlretrieve(url, filename, sbid, retry=3):
         if os.path.exists(filename):
-            log.warn("%s\tDUPLICATED" % url)
+            log.warn("%s\tDUPLICATED\t%s" % (sbid, url))
             return None
 
         for i in range(retry):
             try:
                 urllib.urlretrieve(url, filename)
             except urllib.ContentTooShortError as e:
-                log.warn("%s\tContentTooShortError\t%i" % (url, i))
+                log.warn("%s\tContentTooShortError\t%s\t%i" % (sbid, url, i))
             else:
-                log.info("%s\t%s" % (sbid, url))
+                log.info("%s\tOK\t%s" % (sbid, url))
                 return True
-        log.error("%s\t%s" % (sbid, url))
+        log.error("%s\tEXCEED_MAXIMUM_RETRY\t%s" % (sbid, url))
         return False
 
     if url.endswith('.pdf'):
-        _urlretrieve(url, os.path.join(output_folder, "%s.pdf" % sbid), sbid)
+        #: sbid is not unique, so use sbid+pdfname as new name
+        pdf_name = url.split('/')[-1].split('.')[0]
+        _urlretrieve(url, os.path.join(output_folder, "%s.%s.pdf" % (sbid, pdf_name)), sbid)
     else:
         page = urllib2.urlopen(url).read()
         soup = bs4.BeautifulSoup(page)
         anchors = soup.findAll('a', attrs={'href': re.compile(".pdf$", re.I)})
         if not anchors:
-            log.warn("%s\t%s\tNO_PDF_DETECTED" % (sbid, url))
+            log.warn("%s\tNO_PDF_DETECTED\t%s" % (sbid, url))
             return None
 
         for a in anchors:
             href = a['href']
             pdf_name = href.split('/')[-1]
-            print 'ORG\t', url
-            if href.startswith('http'):
-                url = href
-            else:
-                if not url.endswith('/'):
-                    url += '/'
-                url += href
-            print href, url
-            _urlretrieve(url, os.path.join(output_folder, "%s.%s" % (sbid, pdf_name)), sbid)
+            sub_url = urlparse.urljoin(url, href)
+            _urlretrieve(sub_url, os.path.join(output_folder, "%s.%s" % (sbid, pdf_name)), sbid)
 
 
 def get_tasks(csv_filepath):
+    """
+    Returns:
+        [{'ScienceBaseID': a1b2c3d4, 'webLinks__uri': 'http://balabala'}, {}]
+    """
     l = []
     with open(csv_filepath, 'r') as f:
         reader = csv.DictReader(f, delimiter=',', quotechar='"')
@@ -88,24 +92,52 @@ def get_tasks(csv_filepath):
 
 
 def crawl(csv_filepath, output_folder='pdfs'):
+    """main function
     """
-    TODO: some task has multiple links (pdfs), how to handle it?
-    """
-    tasks = get_tasks(csv_filepath)
-    completed = set()
+    global TASKS
+    TASKS = get_tasks(csv_filepath)
     for f in os.listdir(output_folder):
-        completed.add(f.split('.')[0])
+        filepath = os.path.join(output_folder, f)
+        with open(filepath, 'r') as ff:
+            head_line = ff.readline()
+        #if os.stat(filepath).st_size > MINIMUM_PDF_SIZE:
+        if head_line.startswith("%PDF"):
+            COMPLETED.add(f.split('.')[0])
+        else:
+            os.remove(filepath)
+            print 'deleted: ', filepath, head_line
 
-    for task in tasks:
+    for i in range(128):
+        t = threading.Thread(target=crawler, args=(output_folder,))
+        t.start()
+
+
+def crawler(output_folder):
+    finished = 0
+    print "thread %i has started" % (threading.current_thread().ident)
+    global TASKS, COMPLETED
+    while True:
         try:
+            task = TASKS.pop()
+            if not task:
+                break
             sbid = task['ScienceBaseID']
+            # some webLinks__uri looks like:
+            # http://www.springerlink.com/content/p543611u8317w447/?p=a0e7243d602f4bd3b33b2089b2ed92e4&pi=5  ;  http://www.springerlink.com/content/p543611u8317w447/fulltext.pdf
+            # since both url will redirect to the same url finally, I did not retrieve them twice
             url = task['webLinks__uri']
-            if sbid in completed:
+            if sbid in COMPLETED:
                 continue
             retrieve(url, sbid, output_folder)
+
+            finished += 1
+            if finished % 20 == 0:
+                print "%i has finished %i" % (threading.current_thread().ident, finished)
         except Exception as e:
-            print e
-            log.error("%s\t%s\t%s" % (sbid, url, e))
+            print e, task
+            log.error("%s\tUNEXPECTED\t%s\t%s" % (sbid, url, e))
+    threading.current_thread().join()
+
 
 def main(argv):
     print crawl(argv[1], '/scratch/pdfs')

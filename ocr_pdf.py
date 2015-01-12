@@ -105,7 +105,7 @@ def cuneiform(bmp_folder_path, output_folder_path=None, func=call):
     for i in os.listdir(bmp_folder_path):
         if i.endswith('.bmp'):
             cmd = "./cde-package/cde-exec '/scratch.1/pdf2xml/cuneiform/bin/cuneiform' -f hocr -o '%s.html' '%s'"\
-                % (os.path.join(output_folder_path, i), os.path.join(bmp_folder_path, i.replace(".bmp","")))
+                % (os.path.join(output_folder_path, i), os.path.join(bmp_folder_path,i))
             func(cmd)
     return 0
 

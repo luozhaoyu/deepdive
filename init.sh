@@ -32,5 +32,4 @@ if [ -d "../NLPshared/" ]; then
     fi
 fi
 
-
-echo "Ready to go! Use the createJobs.sh (or similar) scripts to generate jobs."
+echo "Ready to go! Head over to the ChtcRun directory and use the createJobs.sh (or similar) scripts to generate jobs."

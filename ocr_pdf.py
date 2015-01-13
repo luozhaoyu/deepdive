@@ -9,6 +9,7 @@
 import subprocess
 import os
 import shutil
+import argparse
 
 def call(cmd, check=True, stdout=None, stderr=None):
     """
@@ -54,19 +55,19 @@ def k2pdfopt(pdf_file, output_file, func=call):
 
 def pdf_to_png(pdf_file, tmp_folder=None, func=call):
     if tmp_folder:
-        cmd = "./codes/convert/cde-exec 'gs' -dBATCH -dNOPAUSE -sDEVICE=png16m -dGraphicsAlphaBits=4 -dTextAlphaBits=4 -r300 -sOutputFile='%s/page-%%d.png' '%s'"\
+        cmd = "./codes/convert/cde-exec 'gs' -dBATCH -dNOPAUSE -sDEVICE=png16m -dGraphicsAlphaBits=4 -dTextAlphaBits=4 -r600 -sOutputFile='%s/page-%%d.png' '%s'"\
             % (tmp_folder, pdf_file)
     else:
-        cmd = "./codes/convert/cde-exec 'gs' -dBATCH -dNOPAUSE -sDEVICE=png16m -dGraphicsAlphaBits=4 -dTextAlphaBits=4 -r300 -sOutputFile=page-%%d.png '%s'" % pdf_file
+        cmd = "./codes/convert/cde-exec 'gs' -dBATCH -dNOPAUSE -sDEVICE=png16m -dGraphicsAlphaBits=4 -dTextAlphaBits=4 -r600 -sOutputFile=page-%%d.png '%s'" % pdf_file
     return func(cmd)
 
 
 def pdf_to_bmp(pdf_file, tmp_folder=None, func=call):
     if tmp_folder:
-        cmd = "./codes/convert/cde-exec 'gs' -SDEVICE=bmpmono -r300x300 -sOutputFile='%s/cuneiform-page-%%04d.bmp' -dNOPAUSE -dBATCH -- '%s'"\
+        cmd = "./codes/convert/cde-exec 'gs' -SDEVICE=bmpmono -r600x600 -sOutputFile='%s/cuneiform-page-%%04d.bmp' -dNOPAUSE -dBATCH -- '%s'"\
                 % (tmp_folder, pdf_file)
     else:
-        cmd = "./codes/convert/cde-exec 'gs' -SDEVICE=bmpmono -r300x300 -sOutputFile='cuneiform-page-%%04d.bmp' -dNOPAUSE -dBATCH -- '%s'" % pdf_file
+        cmd = "./codes/convert/cde-exec 'gs' -SDEVICE=bmpmono -r600x600 -sOutputFile='cuneiform-page-%%04d.bmp' -dNOPAUSE -dBATCH -- '%s'" % pdf_file
     return func(cmd)
 
 
@@ -82,7 +83,8 @@ def tesseract(png_folder_path, output_folder_path=None, func=call):
         if i.endswith('.png'):
             png_path = os.path.join(png_folder_path, i)
             ppm_filename = "%s.ppm" % png_path
-            hocr_filename = os.path.join(output_folder_path, "%s.hocr" % i)
+            ppm_filename = ppm_filename.replace(".png","")
+            hocr_filename = os.path.join(output_folder_path, "%s.hocr" % i.replace(".png",""))
             cmd = "./codes/convert/cde-exec 'convert' -density 750 '%s' '%s'" % (png_path, ppm_filename)
             func(cmd)
             cmd = "./codes/tesseract/cde-exec 'tesseract' '%s' '%s' hocr" % (ppm_filename, hocr_filename)
@@ -103,7 +105,7 @@ def cuneiform(bmp_folder_path, output_folder_path=None, func=call):
     for i in os.listdir(bmp_folder_path):
         if i.endswith('.bmp'):
             cmd = "./cde-package/cde-exec '/scratch.1/pdf2xml/cuneiform/bin/cuneiform' -f hocr -o '%s.html' '%s'"\
-                % (os.path.join(output_folder_path, i), os.path.join(bmp_folder_path, i))
+                % (os.path.join(output_folder_path, i), os.path.join(bmp_folder_path,i))
             func(cmd)
     return 0
 
@@ -116,11 +118,14 @@ def tiff_to_html(tiff_path, output_folder_path=None, func=call):
 
 
 class OcrPdf(object):
-    def __init__(self, pdf_path, stdout_filepath, stderr_filepath, output_folder_path=None):
+    def __init__(self, pdf_path, stdout_filepath, stderr_filepath, output_folder_path=None, cuneiform=True, tesseract=True, k2pdf = False):
         try:
             self.stdout = open(stdout_filepath, 'a')
             self.stderr = open(stderr_filepath, 'a')
             self.pdf_path = pdf_path
+            self.k2pdf = k2pdf
+            self.cuneiform = cuneiform
+            self.tesseract = tesseract
             self.output_folder_path = output_folder_path
         except IOError as e:
             print "ERROR\tInvalid filepath %s, %s" % (stdout_filepath, stderr_filepath)
@@ -151,14 +156,20 @@ class OcrPdf(object):
         return call(cmd, check=check, stdout=self.stdout, stderr=self.stderr)
 
     def do(self):
-        output_file = "k2_pdf_%s" % self.pdf_path
+        # Usage of ocr2 and cuneiform will depend on desired runtime options.
+        if self.k2pdf:
+            output_file = "k2_pdf_%s" % self.pdf_path
+            print k2pdfopt(self.pdf_path, output_file, func=self.call)
+        else:
+            output_file = self.pdf_path
         unzip("ocr2.zip", func=self.call)
         unzip("cuneiform.zip", func=self.call)
-        print k2pdfopt(self.pdf_path, output_file, func=self.call)
-        print pdf_to_png(output_file, tmp_folder='tmp', func=self.call)
-        print pdf_to_bmp(output_file, tmp_folder='tmp', func=self.call)
-        print tesseract('tmp', self.output_folder_path, self.call)
-        print cuneiform('tmp', self.output_folder_path, self.call)
+        if self.tesseract:
+            print pdf_to_png(output_file, tmp_folder='tmp', func=self.call)
+            print tesseract('tmp', self.output_folder_path, self.call)
+        if self.cuneiform:
+            print pdf_to_bmp(output_file, tmp_folder='tmp', func=self.call)
+            print cuneiform('tmp', self.output_folder_path, self.call)
 
     def tiffs_to_htmls(self, tiff_folder_path):
         """
@@ -173,12 +184,20 @@ class OcrPdf(object):
         return True
 
 
-def main(argv):
-    o = OcrPdf(argv[1], 'out.txt', 'out.txt', 'out')
-    #o.do()
-    o.tiffs_to_htmls(argv[1])
+def main(args):
+    o = OcrPdf(args.file, 'out.txt', 'out.txt', './',args.cuneiform,args.tesseract,args.k2pdf)
+    o.do()
+#    o.tiffs_to_htmls(argv[1])
 
 
 if __name__ == '__main__':
-    import sys
-    main(sys.argv)
+    parser = argparse.ArgumentParser(description='Process some integers.')
+    parser.add_argument('file', type=str, default="input.pdf", help='Filename to process')
+    parser.add_argument('--cuneiform', dest='cuneiform', action='store_true', help='Run Cuneiform OCR?')
+    parser.add_argument('--no-cuneiform', dest='cuneiform', action='store_false', help='Run Cuneiform OCR?')
+    parser.add_argument('--tesseract', dest='tesseract', action='store_true', help='Run Tesseract OCR?')
+    parser.add_argument('--no-tesseract', dest='tesseract', action='store_false', help='Run Tesseract OCR?')
+    parser.add_argument('--k2pdf', type=bool, required=False, default=False, help='Run k2pdf step?')
+
+    args = parser.parse_args()
+    main(args)

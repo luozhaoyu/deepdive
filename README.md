@@ -1,6 +1,21 @@
 deepdive
 ========
 
+init.sh
+-------
+Use the init.sh script to quickly set up a condor-ready submission area.
+To use,
+    
+    mkdir job_submission
+    cd job_submission
+    git clone https://github.com/iross/deepdive
+    # CREATE shared/ folder that contains URLS, executable
+    cd deepdive
+    sh init.sh
+
+It will create a job_submission/ChtcRun with additional job creation scripts in place.
+
+
 OCR
 ---
 

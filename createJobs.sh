@@ -1,6 +1,6 @@
 # should be run from ChtcRun directory
 
-filepath="~/DeepDive/downloads/"
+filepath="/home/iaross/DeepDive/downloads/"
 
 # clean up journal name, removing commas and spaces
 journal=$1
@@ -8,7 +8,7 @@ tag=$2
 journal_clean=${journal//,/}
 journal_clean=${journal_clean// /_}
 
-python ../deepdive/pdf_to_dag.py "$filepath""$journal" "$journal_clean"$tag
+python ../deepdive/pdf_to_dag.py "$filepath$journal" "$journal_clean"$tag
 
 # assume ChtcRun/shared exists and holds all common shared junk
 cp -r shared "$journal_clean""$tag"

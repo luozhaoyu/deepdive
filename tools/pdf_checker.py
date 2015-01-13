@@ -22,7 +22,7 @@ def main():
             input = PdfFileReader(open(filepath, 'rb'))
         except Exception:
             print "Broken\t%s" % filepath
-            if len(argv) > 1 and argv[2] == 'delete':
+            if len(argv) > 2 and argv[2] == 'delete':
                 os.remove(filepath)
                 print "Deleted\t%s" % filepath
 

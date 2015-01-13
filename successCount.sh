@@ -1,6 +1,10 @@
+#!/bin/sh
+
 # Run from submit dir.
 # Looks for success flags in the [journal]_out/[jobid]/RESULT files,
 # writing the journal name and total successes for each
+
+pushd /home/iaross/elsevier_002/ChtcRun/
 
 tag=$1
 
@@ -14,3 +18,5 @@ do
     fclean=${fclean//\//}
     cat "$f"*/RESULT | grep 0 | wc -l | xargs echo $fclean",">> successCount$tag.csv
 done
+
+popd

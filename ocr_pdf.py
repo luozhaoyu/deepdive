@@ -162,12 +162,12 @@ class OcrPdf(object):
             print k2pdfopt(self.pdf_path, output_file, func=self.call)
         else:
             output_file = self.pdf_path
+        unzip("ocr2.zip", func=self.call)
+        unzip("cuneiform.zip", func=self.call)
         if self.tesseract:
-            unzip("ocr2.zip", func=self.call)
             print pdf_to_png(output_file, tmp_folder='tmp', func=self.call)
             print tesseract('tmp', self.output_folder_path, self.call)
         if self.cuneiform:
-            unzip("cuneiform.zip", func=self.call)
             print pdf_to_bmp(output_file, tmp_folder='tmp', func=self.call)
             print cuneiform('tmp', self.output_folder_path, self.call)
 

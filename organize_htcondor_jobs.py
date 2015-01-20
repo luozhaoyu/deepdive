@@ -51,8 +51,9 @@ def organize_htcondor_jobs(origin_input_folder,
                 os.makedirs(new_organized_path)
 
             for f in os.listdir(job_dir_path):
-                if f != "out.txt" and\
-                    (f.endswith('.txt') or f.endswith('.html')):
+                if f != "out.txt" and \
+                    (f.endswith('.txt') or f.endswith('.html') \
+                    or f.endswith('.pdf') or f.endswith('.hocr') ):
                     shutil.copy(
                         os.path.join(htcondor_output_folder, job_name, f),
                         new_organized_path)

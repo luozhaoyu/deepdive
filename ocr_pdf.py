@@ -9,6 +9,7 @@
 import subprocess
 import os
 import shutil
+import glob
 import argparse
 
 def call(cmd, check=True, stdout=None, stderr=None):
@@ -29,6 +30,16 @@ def unzip(zip_file, func=call):
     except subprocess.CalledProcessError as e:
         if e.returncode != 2:
             raise e
+
+
+def cp(wild_pathname, dst):
+    """Unix-like file copy"""
+    for src in glob.glob(wild_pathname):
+        if os.path.isdir(dst):
+            shutil.copy(src, os.path.join(dst, os.path.basename(src)))
+        else:
+            shutil.copy(src, dst)
+    return True
 
 
 def k2pdfopt(pdf_file, output_file, func=call):
@@ -118,7 +129,8 @@ def tiff_to_html(tiff_path, output_folder_path=None, func=call):
 
 
 class OcrPdf(object):
-    def __init__(self, pdf_path, stdout_filepath, stderr_filepath, output_folder_path=None, cuneiform=True, tesseract=True, k2pdf = False):
+    def __init__(self, pdf_path, stdout_filepath, stderr_filepath,
+            output_folder_path=None, cuneiform=True, tesseract=True, k2pdf = False):
         try:
             self.stdout = open(stdout_filepath, 'a')
             self.stderr = open(stderr_filepath, 'a')
@@ -190,14 +202,45 @@ def main(args):
 #    o.tiffs_to_htmls(argv[1])
 
 
+def detect_layout_fonts(pdf_file, output_folder, enable_tesseract, enable_k2pdf):
+    import old_cuneiform_arcane
+
+    o = OcrPdf(pdf_file, 'out.txt', 'out.txt', output_folder,
+            True, enable_tesseract, enable_k2pdf)
+    o.do()
+    try:
+        shutil.rmtree('tmp', True)
+        os.mkdir('tmp')
+        cp(os.path.join(output_folder, "cune*html"), 'tmp')
+        old_cuneiform_arcane.parse_cunneiform_results_and_extract_layout_font_information('tmp')
+        cp("tmp/*", output_folder)
+    except:
+        raise
+    finally:
+        shutil.rmtree('tmp', True)
+        for src in glob.glob(os.path.join(output_folder, "cuneiform-page-*")):
+            if os.path.isdir(src):
+                shutil.rmtree(src, True)
+            else:
+                os.remove(src)
+    return True
+
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Process some integers.')
     parser.add_argument('file', type=str, default="input.pdf", help='Filename to process')
+    parser.add_argument('--output-folder', type=str, default="./", help='output folder')
     parser.add_argument('--cuneiform', dest='cuneiform', action='store_true', help='Run Cuneiform OCR?')
     parser.add_argument('--no-cuneiform', dest='cuneiform', action='store_false', help='Run Cuneiform OCR?')
     parser.add_argument('--tesseract', dest='tesseract', action='store_true', help='Run Tesseract OCR?')
     parser.add_argument('--no-tesseract', dest='tesseract', action='store_false', help='Run Tesseract OCR?')
     parser.add_argument('--k2pdf', type=bool, required=False, default=False, help='Run k2pdf step?')
+    exclusives = parser.add_mutually_exclusive_group()
+    exclusives.add_argument('--fonttype', action='store_true', help='Run fonttype')
 
     args = parser.parse_args()
-    main(args)
+    if args.fonttype:
+        detect_layout_fonts(args.file, args.output_folder,
+            args.tesseract, args.k2pdf)
+    else:
+        main(args)
